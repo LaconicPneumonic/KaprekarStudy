@@ -68,7 +68,7 @@
 
     const base = 16;
     const length = 3;
-    const [rows, cols] = [100, 200];
+    const [rows, cols] = [100, 100];
     const [wrappingRows, wrappingCols] = [10, 10];
     const limit = 40;
 
@@ -102,14 +102,16 @@
           );
 
           // mirror the internal tiles
-          const row = Math.abs(
-            (Math.floor(index / rows) % (2 * (wrappingRows - 1))) -
-              wrappingRows +
-              1
-          );
-          const col = Math.abs(
-            ((index % cols) % (2 * (wrappingCols - 1))) - wrappingCols + 1
-          );
+          const row =
+            Math.abs(
+              (Math.floor(index / rows) % (2 * (wrappingRows - 1))) -
+                wrappingRows +
+                1
+            ) || 0;
+          const col =
+            Math.abs(
+              ((index % cols) % (2 * (wrappingCols - 1))) - wrappingCols + 1
+            ) || 0;
 
           const newIndex = row * wrappingRows + col;
 
