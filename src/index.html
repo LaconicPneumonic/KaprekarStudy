@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <script src="https://unpkg.com/pts/dist/pts.min.js"></script>
+    <!-- pts js -->
+    <script src="./pts.min.js"></script>
     <!-- D3 Color -->
     <script src="https://cdn.jsdelivr.net/npm/d3-array@3"></script>
     <script src="https://cdn.jsdelivr.net/npm/d3-color@3"></script>
@@ -11,12 +12,100 @@
     <script src="https://cdn.jsdelivr.net/npm/d3-time-format@4"></script>
     <script src="https://cdn.jsdelivr.net/npm/d3-scale@4"></script>
     <script src="https://cdn.jsdelivr.net/npm/d3-scale-chromatic"></script>
+    <script
+      async
+      src="https://platform.twitter.com/widgets.js"
+      charset="utf-8"
+    ></script>
   </head>
   <body>
-    <div id="pt" style="width: 400px; height: 800px; margin: 30px auto 0"></div>
+    <div class="header" id="myHeader">
+      <h2>Kaprekar's Demo</h2>
+      <a
+        href="https://twitter.com/Anthony52182757"
+        class="twitter-follow-button"
+        data-show-count="true"
+        data-size=" large"
+        >My Dev Twitter</a
+      >
+    </div>
+    <div class="controls">
+      <div>
+        <h1>Options</h1>
+      </div>
+      <form id="myForm" name="myForm" onsubmit="formEventHandler()">
+        <div id="forminputs" class="forminputs"></div>
+        <input type="submit" class="inputbox" />
+      </form>
+      <div>
+        <a id="dl" download="Canvas.png" href="#">Download Canvas</a>
+      </div>
+    </div>
+
+    <div
+      id="pt"
+      style="width: 1000px; height: 1000px; margin: 30px auto 0"
+    ></div>
   </body>
 
   <script>
+    const formElement = document.getElementById("myForm");
+    // turn off default behavior
+    formElement.addEventListener("submit", function (event) {
+      event.preventDefault();
+    });
+
+    // default memory structure and values
+    const defaultMemory = {
+      base: 6,
+      length: 8,
+      rows: 24,
+      cols: 24,
+      wrappingRows: 10,
+      wrappingCols: 10,
+      limit: 40,
+    };
+
+    // dynamically construct form
+    // why didn't I use vue
+    Object.entries(defaultMemory).forEach(([key, value]) => {
+      const f = document.getElementById("forminputs");
+      const d = document.createElement("div");
+      d.setAttribute("class", "inputbox");
+
+      const l = document.createElement("label");
+      l.setAttribute("for", key);
+      l.innerHTML = `<b>${key[0].toUpperCase() + key.slice(1)}</b>`;
+
+      const i = document.createElement("input");
+      i.setAttribute("type", "number");
+      i.setAttribute("name", key);
+      i.setAttribute("value", value);
+      f.appendChild(d);
+      d.appendChild(l);
+      d.appendChild(i);
+    });
+
+    let renderMe = false;
+    // form submit event handler
+    const formEventHandler = () => {
+      renderMe = true;
+
+      space.playOnce();
+    };
+
+    const getFormResult = () =>
+      Object.fromEntries(
+        Object.keys(defaultMemory).map((k) => [
+          k,
+          parseInt(document.forms["myForm"][k].value),
+        ])
+      );
+
+    /**
+     * Kaprekar library
+     */
+
     const numToString = (num, length, base) =>
       num.toString(base).padStart(length, "0");
 
@@ -66,35 +155,52 @@
       return count;
     };
 
-    const base = 16;
-    const length = 3;
-    const [rows, cols] = [100, 100];
-    const [wrappingRows, wrappingCols] = [10, 10];
-    const limit = 40;
-
-    const conversion = (n) => numToString(n, length, base);
-    const convertStringToNum = (n) => parseInt(n, base);
+    /**
+     * render function
+     */
 
     window.demoDescription = "Kaprekar Study";
 
     Pts.quickStart("#pt", "#123");
 
-    const series = kaprekarInitial(wrappingRows * wrappingCols, conversion).map(
-      (init) =>
-        constructKaprekarSeries(init, conversion, convertStringToNum, limit, 0)
-    );
-
-    const maxConversion = Math.max(...series.filter((v) => v != limit - 1));
-
     var pts = [];
 
     space.add({
       start: (bound) => {
-        pts = Create.gridCells(space.innerBound, rows, cols);
+        const inputs = getFormResult();
+        pts = Create.gridCells(
+          space.innerBound.scale(0.5),
+          inputs.rows,
+          inputs.cols
+        );
       },
 
       animate: () => {
         // calculate the size and color of each cell based on its distance to the pointer
+
+        const inputs = getFormResult();
+
+        // console.log(inputs);
+        const conversion = (n) => numToString(n, inputs.length, inputs.base);
+        const convertStringToNum = (n) => parseInt(n, inputs.base);
+
+        const series = kaprekarInitial(
+          inputs.wrappingRows * inputs.wrappingCols,
+          conversion
+        ).map((init) =>
+          constructKaprekarSeries(
+            init,
+            conversion,
+            convertStringToNum,
+            inputs.limit,
+            0
+          )
+        );
+
+        const maxConversion = Math.max(
+          ...series.filter((v) => v != inputs.limit - 1)
+        );
+
         pts.map((p, index) => {
           const r = Rectangle.fromCenter(
             Rectangle.center(p),
@@ -104,31 +210,70 @@
           // mirror the internal tiles
           const row =
             Math.abs(
-              (Math.floor(index / rows) % (2 * (wrappingRows - 1))) -
-                wrappingRows +
+              (Math.floor(index / inputs.rows) %
+                (2 * (inputs.wrappingRows - 1))) -
+                inputs.wrappingRows +
                 1
             ) || 0;
           const col =
             Math.abs(
-              ((index % cols) % (2 * (wrappingCols - 1))) - wrappingCols + 1
+              ((index % inputs.cols) % (2 * (inputs.wrappingCols - 1))) -
+                inputs.wrappingCols +
+                1
             ) || 0;
 
-          const newIndex = row * wrappingRows + col;
+          const newIndex = row * inputs.wrappingRows + col;
 
           const elem = series[newIndex];
 
           const color = d3
-            .scaleSequential(d3.interpolateTurbo)
+            .scaleSequential(d3.interpolatePuBuGn)
             .domain([0, maxConversion])(elem);
 
           form.stroke(color).fill(color).rect(r);
-          form.textBox(r, "1");
         });
       },
     });
 
-    //// ----
+    function dlCanvas() {
+      var dt = space.element.toDataURL("image/png");
+      /* Change MIME type to trick the browser to downlaod the file instead of displaying it */
+      dt = dt.replace(/^data:image\/[^;]*/, "data:application/octet-stream");
 
-    space.playOnce();
+      /* In addition to <a>'s "download" attribute, you can define HTTP-style headers */
+      dt = dt.replace(
+        /^data:application\/octet-stream/,
+        "data:application/octet-stream;headers=Content-Disposition%3A%20attachment%3B%20filename=Canvas.png"
+      );
+
+      this.href = dt;
+    }
+    document.getElementById("dl").addEventListener("click", dlCanvas, false);
   </script>
+  <style>
+    body {
+      font-family: Arial;
+      margin: 0;
+    }
+
+    .inputbox {
+      display: flex;
+      justify-content: space-between;
+    }
+    .header {
+      padding: 10px 16px;
+      margin-bottom: 10px;
+      background: #555;
+      color: #f1f1f1;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .controls {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+  </style>
 </html>
