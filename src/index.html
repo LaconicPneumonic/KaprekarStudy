@@ -25,7 +25,7 @@
         href="https://twitter.com/Anthony52182757"
         class="twitter-follow-button"
         data-show-count="true"
-        data-size=" large"
+        data-size="large"
         >My Dev Twitter</a
       >
     </div>
@@ -57,13 +57,77 @@
 
     // default memory structure and values
     const defaultMemory = {
-      base: 6,
-      length: 8,
-      rows: 24,
-      cols: 24,
-      wrappingRows: 10,
-      wrappingCols: 10,
-      limit: 40,
+      base: {
+        type: "number",
+        value: 10,
+      },
+      length: {
+        type: "number",
+        value: 4,
+      },
+      rows: {
+        type: "number",
+        value: 24,
+      },
+      cols: {
+        type: "number",
+        value: 24,
+      },
+      wrappingRows: {
+        type: "number",
+        value: 10,
+      },
+      wrappingCols: {
+        type: "number",
+        value: 10,
+      },
+      limit: {
+        type: "number",
+        value: 40,
+      },
+      colorSpace: {
+        type: "select",
+        value: [
+          "interpolateTurbo",
+          "interpolateViridis",
+          "interpolateInferno",
+          "interpolateMagma",
+          "interpolatePlasma",
+          "interpolateCividis",
+          "interpolateWarm",
+          "interpolateCubehelixDefault",
+          "interpolateBuGn",
+          "interpolateBuPu",
+          "interpolateGnBu",
+          "interpolateOrRd",
+          "interpolatePuBuGn",
+          "interpolatePuBu",
+          "interpolatePuRd",
+          "interpolateRdPu",
+          "interpolateYlGnBu",
+          "interpolateYlGn",
+          "interpolateYlOrBr",
+          "interpolateYlOrRd",
+          "interpolateRainbow",
+          "interpolateSinebow",
+          "interpolateCool",
+          "interpolateBrBG",
+          "interpolatePRGn",
+          "interpolatePiYG",
+          "interpolatePuOr",
+          "interpolateRdBu",
+          "interpolateRdGy",
+          "interpolateRdYlBu",
+          "interpolateRdYlGn",
+          "interpolateSpectral",
+          "interpolateBlues",
+          "interpolateGreens",
+          "interpolateGreys",
+          "interpolateOranges",
+          "interpolatePurples",
+          "interpolateReds",
+        ],
+      },
     };
 
     // dynamically construct form
@@ -77,30 +141,66 @@
       l.setAttribute("for", key);
       l.innerHTML = `<b>${key[0].toUpperCase() + key.slice(1)}</b>`;
 
-      const i = document.createElement("input");
-      i.setAttribute("type", "number");
-      i.setAttribute("name", key);
-      i.setAttribute("value", value);
       f.appendChild(d);
       d.appendChild(l);
-      d.appendChild(i);
+
+      switch (value.type) {
+        case "number": {
+          const i = document.createElement("input");
+          i.setAttribute("type", "number");
+          i.setAttribute("name", key);
+          i.setAttribute("value", value.value);
+
+          d.appendChild(i);
+          break;
+        }
+
+        case "select": {
+          const select = document.createElement("select");
+          select.setAttribute("name", key);
+
+          value.value.forEach((v) => {
+            const option = document.createElement("option");
+            option.innerHTML = `<b>${v[0].toUpperCase() + v.slice(1)}</b>`;
+            option.setAttribute("value", v);
+            select.appendChild(option);
+          });
+
+          d.appendChild(select);
+          break;
+        }
+
+        default:
+          break;
+      }
     });
 
     let renderMe = false;
     // form submit event handler
     const formEventHandler = () => {
-      renderMe = true;
-
       space.playOnce();
     };
 
-    const getFormResult = () =>
-      Object.fromEntries(
-        Object.keys(defaultMemory).map((k) => [
-          k,
-          parseInt(document.forms["myForm"][k].value),
-        ])
+    const getFormResult = () => {
+      const ret = Object.fromEntries(
+        Object.entries(defaultMemory).map(([k, v]) => {
+          const val = (key, type) => {
+            switch (type) {
+              case "number":
+                return parseInt(document.forms["myForm"][key].value);
+
+              case "select":
+                return document.forms["myForm"][key].value;
+              default:
+                break;
+            }
+          };
+          return [k, val(k, v.type)];
+        })
       );
+
+      return ret;
+    };
 
     /**
      * Kaprekar library
@@ -163,24 +263,12 @@
 
     Pts.quickStart("#pt", "#123");
 
-    var pts = [];
-
     space.add({
-      start: (bound) => {
-        const inputs = getFormResult();
-        pts = Create.gridCells(
-          space.innerBound.scale(0.5),
-          inputs.rows,
-          inputs.cols
-        );
-      },
-
       animate: () => {
         // calculate the size and color of each cell based on its distance to the pointer
 
         const inputs = getFormResult();
 
-        // console.log(inputs);
         const conversion = (n) => numToString(n, inputs.length, inputs.base);
         const convertStringToNum = (n) => parseInt(n, inputs.base);
 
@@ -201,7 +289,11 @@
           ...series.filter((v) => v != inputs.limit - 1)
         );
 
-        pts.map((p, index) => {
+        Create.gridCells(
+          space.innerBound.scale(0.5),
+          inputs.rows,
+          inputs.cols
+        ).map((p, index) => {
           const r = Rectangle.fromCenter(
             Rectangle.center(p),
             Rectangle.size(p)
@@ -227,7 +319,7 @@
           const elem = series[newIndex];
 
           const color = d3
-            .scaleSequential(d3.interpolatePuBuGn)
+            .scaleSequential(d3[inputs.colorSpace])
             .domain([0, maxConversion])(elem);
 
           form.stroke(color).fill(color).rect(r);
@@ -256,19 +348,24 @@
       margin: 0;
     }
 
+    body.waiting * {
+      cursor: wait;
+    }
+
     .inputbox {
       display: flex;
       justify-content: space-between;
     }
+
     .header {
       padding: 10px 16px;
       margin-bottom: 10px;
-      background: #555;
-      color: #f1f1f1;
+      background: #799cb9;
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
+
     .controls {
       display: flex;
       flex-direction: column;
