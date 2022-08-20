@@ -289,6 +289,19 @@
           ...series.filter((v) => v != inputs.limit - 1)
         );
 
+        const colorInterpolator = d3
+          .scaleSequential(d3[inputs.colorSpace])
+          .domain([0, maxConversion]);
+
+        const header = document.getElementById("myHeader");
+
+        const styleArray = Array.from({ length: maxConversion }).map((_, i) =>
+          colorInterpolator(i)
+        );
+        header.style.background = `linear-gradient(90deg, ${styleArray.join(
+          ", "
+        )})`;
+
         Create.gridCells(
           space.innerBound.scale(0.5),
           inputs.rows,
@@ -318,9 +331,7 @@
 
           const elem = series[newIndex];
 
-          const color = d3
-            .scaleSequential(d3[inputs.colorSpace])
-            .domain([0, maxConversion])(elem);
+          const color = colorInterpolator(elem);
 
           form.stroke(color).fill(color).rect(r);
         });
@@ -346,6 +357,7 @@
     body {
       font-family: Arial;
       margin: 0;
+      background: grey;
     }
 
     body.waiting * {
@@ -364,6 +376,13 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+    }
+
+    .header h2 {
+      -webkit-text-stroke-width: 0.5px;
+      -webkit-text-stroke-color: black;
+      color: white;
+      font-size: 40px;
     }
 
     .controls {
