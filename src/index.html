@@ -136,9 +136,9 @@
       },
     };
 
+    // pull url params if they exist
     const urlParams = new URLSearchParams(window.location.search);
     // dynamically construct form
-    // why didn't I use vue
     Object.entries(defaultMemory).forEach(([key, value]) => {
       const f = document.getElementById("forminputs");
       const d = document.createElement("div");
@@ -184,7 +184,6 @@
       }
     });
 
-    let renderMe = false;
     // form submit event handler
     const formEventHandler = () => {
       space.playOnce();
@@ -214,6 +213,7 @@
         })
       );
 
+      // update the url for sharing results
       window.history.pushState({}, "", urlToPush);
       return ret;
     };
@@ -228,7 +228,7 @@
     const kaprekarInitial = (limit, convertToString) => {
       const ret = [];
 
-      //  at least two unique digits
+      // at least two unique digits to construct a valid initial number
       const valid = (numString) =>
         [...numString].filter((v, i, a) => a.indexOf(v) === i).length >= 2;
 
@@ -254,7 +254,7 @@
 
       let count = initialCount;
       while (ret.length != length) {
-        //   trim down to something useful
+        // trim down to something useful
         const prev = ret[ret.length - 1];
         const asc = [...prev].sort().join("");
         const desc = [...asc].reverse().join("");
@@ -362,10 +362,10 @@
       /* Change MIME type to trick the browser to downlaod the file instead of displaying it */
       dt = dt.replace(/^data:image\/[^;]*/, "data:application/octet-stream");
 
-      /* In addition to <a>'s "download" attribute, you can define HTTP-style headers */
+      // In addition to <a>'s "download" attribute, you can define HTTP-style headers */
       dt = dt.replace(
         /^data:application\/octet-stream/,
-        "data:application/octet-stream;headers=Content-Disposition%3A%20attachment%3B%20filename=Canvas.png"
+        "data:application/octet-stream;headers=Content-Disposition%3A%20attachment%3B%20filename=Kaprekar.png"
       );
 
       this.href = dt;
