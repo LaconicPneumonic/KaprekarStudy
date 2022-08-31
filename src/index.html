@@ -17,6 +17,7 @@
       src="https://platform.twitter.com/widgets.js"
       charset="utf-8"
     ></script>
+    <title>Kaprekar</title>
   </head>
   <body>
     <div class="header" id="myHeader">
@@ -44,7 +45,11 @@
 
     <div
       id="pt"
-      style="width: 1000px; height: 1000px; margin: 30px auto 0"
+      style="
+        width: min(1000px, 100vw);
+        height: min(1000px, 100vw);
+        margin: 30px auto 0;
+      "
     ></div>
   </body>
 
@@ -87,7 +92,8 @@
       },
       colorSpace: {
         type: "select",
-        value: [
+        value: "interpolateWarm",
+        choices: [
           "interpolateTurbo",
           "interpolateViridis",
           "interpolateInferno",
@@ -130,6 +136,7 @@
       },
     };
 
+    const urlParams = new URLSearchParams(window.location.search);
     // dynamically construct form
     // why didn't I use vue
     Object.entries(defaultMemory).forEach(([key, value]) => {
@@ -144,12 +151,13 @@
       f.appendChild(d);
       d.appendChild(l);
 
+      const urlOrDefault = urlParams.get(key) || value.value;
       switch (value.type) {
         case "number": {
           const i = document.createElement("input");
           i.setAttribute("type", "number");
           i.setAttribute("name", key);
-          i.setAttribute("value", value.value);
+          i.setAttribute("value", urlOrDefault);
 
           d.appendChild(i);
           break;
@@ -159,13 +167,14 @@
           const select = document.createElement("select");
           select.setAttribute("name", key);
 
-          value.value.forEach((v) => {
+          value.choices.forEach((v) => {
             const option = document.createElement("option");
             option.innerHTML = `<b>${v[0].toUpperCase() + v.slice(1)}</b>`;
             option.setAttribute("value", v);
             select.appendChild(option);
           });
 
+          select.value = urlOrDefault;
           d.appendChild(select);
           break;
         }
@@ -182,6 +191,8 @@
     };
 
     const getFormResult = () => {
+      const urlToPush = new URL(window.location);
+
       const ret = Object.fromEntries(
         Object.entries(defaultMemory).map(([k, v]) => {
           const val = (key, type) => {
@@ -195,10 +206,15 @@
                 break;
             }
           };
-          return [k, val(k, v.type)];
+
+          const param = [k, val(k, v.type)];
+
+          urlToPush.searchParams.set(...param);
+          return param;
         })
       );
 
+      window.history.pushState({}, "", urlToPush);
       return ret;
     };
 
@@ -338,6 +354,9 @@
       },
     });
 
+    // load on default
+    formEventHandler();
+
     function dlCanvas() {
       var dt = space.element.toDataURL("image/png");
       /* Change MIME type to trick the browser to downlaod the file instead of displaying it */
@@ -367,6 +386,12 @@
     .inputbox {
       display: flex;
       justify-content: space-between;
+    }
+
+    .forminputs * {
+      width: 100%;
+      font-size: max(15px, 2vw);
+      font-weight: bold;
     }
 
     .header {
